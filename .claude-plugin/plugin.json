@@ -1,0 +1,17 @@
+{
+  "name": "tatari-qa",
+  "version": "0.1.0",
+  "description": "Tatari-specific QA automation for Claude Code - Playwright-powered browser testing for Tatari2 workflows",
+  "author": {
+    "name": "Nova Vito"
+  },
+  "keywords": [
+    "qa",
+    "testing",
+    "playwright",
+    "browser-automation",
+    "tatari"
+  ],
+  "repository": "https://github.com/tatari-tv/tatari-qa",
+  "license": "MIT"
+}

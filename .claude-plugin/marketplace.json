@@ -1,0 +1,31 @@
+{
+  "name": "tatari-qa",
+  "owner": {
+    "name": "Nova Vito"
+  },
+  "metadata": {
+    "description": "Tatari QA - Playwright-powered browser testing for Tatari2 workflows",
+    "version": "0.1.0"
+  },
+  "plugins": [
+    {
+      "name": "tatari-qa",
+      "source": "./",
+      "description": "Tatari-specific QA automation for Claude Code - Playwright-powered browser testing for Tatari2 workflows",
+      "version": "0.1.0",
+      "author": {
+        "name": "Nova Vito"
+      },
+      "homepage": "https://github.com/tatari-tv/tatari-qa",
+      "repository": "https://github.com/tatari-tv/tatari-qa",
+      "keywords": [
+        "qa",
+        "testing",
+        "playwright",
+        "browser-automation",
+        "tatari"
+      ],
+      "category": "testing"
+    }
+  ]
+}

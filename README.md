@@ -21,6 +21,7 @@ This plugin lives outside [Conductor](https://github.com/tatari-tv/conductor) be
 
 | Command | Description |
 |---------|-------------|
+| `/tatari-qa:bootstrap` | Bootstrap the full QA dogfooding environment |
 | `/tatari-qa:campaign-qa <scenario>` | Execute YAML-driven campaign creation QA scenarios |
 
 ## Prerequisites
@@ -46,6 +47,19 @@ Scenario YAML files live in the philo repo at `script/qa/campaign_creation/scena
 - **Tier 1** (no extra setup): Awareness + CPM combinations
 - **Tier 2** (needs conversion events): CPA, CPV, ROAS scenarios
 - **Tier 3** (needs segment data): Retargeting scenarios
+
+## Dogfooding
+
+Run `/tatari-qa:bootstrap` to set up the full campaign QA dogfooding environment. The agent discovers your local repos, checks out the correct feature branches, validates prerequisites, runs setup scripts, and reports readiness.
+
+This is for pre-merge dogfooding while these PRs are open:
+- philo [#17588](https://github.com/tatari-tv/philo/pull/17588) — Beeswax sandbox setup automation
+- philo [#17593](https://github.com/tatari-tv/philo/pull/17593) — Execute queued orders script
+- philo-fe [#8391](https://github.com/tatari-tv/philo-fe/pull/8391) — Campaign QA scenarios
+
+Once the PRs merge to main, the branch checkout steps become no-ops (the agent detects main has everything).
+
+See [Prerequisites](#prerequisites) for base requirements.
 
 ## License
 

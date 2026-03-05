@@ -25,10 +25,11 @@ Example:
 - Local dev environment running (`aws-vault exec tatari-ro -- make dev`)
 - philo-fe running at `http://local.tatari.tools:3000`
 - Playwright MCP browser available (Playwright tools: `mcp__playwright__*`)
+- Run `/tatari-qa:bootstrap` first to set up the full dogfooding environment
 - For Tier 2/3 scenarios: local data setup scripts must have been run:
   ```bash
-  docker compose exec -it devserver poetry run python script/programmatic_segment_ingester.py ingest-beeswax-segments
-  docker compose exec -it devserver poetry run python script/ops/setup_local_dev_for_beeswax_sandbox.py
+  docker compose exec devserver poetry run python script/programmatic_segment_ingester.py ingest-beeswax-segments
+  docker compose exec devserver poetry run python script/ops/setup_local_dev_for_beeswax_sandbox.py
   ```
 
 ## Process

@@ -13,7 +13,8 @@ This plugin lives outside [Conductor](https://github.com/tatari-tv/conductor) be
 ## Installation
 
 ```bash
-/plugin install tatari-tv/tatari-qa
+/plugin marketplace add tatari-tv/tatari-qa
+/plugin install tatari-qa@tatari-qa
 ```
 
 ## Available Commands

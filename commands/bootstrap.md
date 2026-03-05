@@ -47,6 +47,15 @@ For tatari-qa, use the current working directory (this plugin's repo).
 **If a repo is not found at either location:**
 - Ask the user: "I couldn't find the {repo} repository at ~/dev/{repo} or ../{repo}. What's the path to your local {repo} checkout?"
 
+After discovering the philo repo, detect the docker compose file:
+
+```bash
+# Detect compose file — philo may use .yml or .yaml
+test -f {philo_path}/docker-compose.yml && COMPOSE_FILE=docker-compose.yml || COMPOSE_FILE=docker-compose.yaml
+```
+
+Store `{compose_file}` and use it for all `docker compose -f` commands in later steps.
+
 Print discovered paths for confirmation:
 
 ```
@@ -155,7 +164,7 @@ Docker isn't running. Start Docker Desktop, then re-run /tatari-qa:bootstrap.
 #### 4b. Devserver Container Running
 
 ```bash
-docker compose -f {philo_path}/docker-compose.yaml ps devserver --format json 2>/dev/null
+docker compose -f {philo_path}/{compose_file} ps devserver --format json 2>/dev/null
 ```
 
 If not running:
@@ -227,7 +236,7 @@ If user says no (or if invoked with `--skip-setup`): skip to Step 6.
 
 **Run segment ingester first** (order matters):
 ```bash
-docker compose -f {philo_path}/docker-compose.yaml exec devserver poetry run python script/programmatic_segment_ingester.py ingest-beeswax-segments
+docker compose -f {philo_path}/{compose_file} exec devserver poetry run python script/programmatic_segment_ingester.py ingest-beeswax-segments
 ```
 
 **Important:** Do NOT use the `-it` flag — Claude Code runs in a non-interactive context.
@@ -239,7 +248,7 @@ If this fails, diagnose the error:
 
 **Then run sandbox setup:**
 ```bash
-docker compose -f {philo_path}/docker-compose.yaml exec devserver poetry run python script/ops/setup_local_dev_for_beeswax_sandbox.py
+docker compose -f {philo_path}/{compose_file} exec devserver poetry run python script/ops/setup_local_dev_for_beeswax_sandbox.py
 ```
 
 If segment ingester succeeded but sandbox setup fails:
@@ -302,7 +311,7 @@ Ready to dogfood! Run a campaign QA scenario:
 
 Note: The execute-queued-orders pipeline step (CM-9203) is not yet
 integrated. After campaign creation, run it manually:
-  docker compose -f {philo_path}/docker-compose.yaml exec devserver poetry run python script/qa/execute_queued_orders.py --latest
+  docker compose -f {philo_path}/{compose_file} exec devserver poetry run python script/qa/execute_queued_orders.py --latest
 ```
 
 Adjust the final message based on what actually happened:

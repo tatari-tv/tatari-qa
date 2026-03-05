@@ -16,3 +16,13 @@ Thumbs.db
 # Claude Code (user-specific)
 .claude/settings.local.json
 TRASH/
+
+# Conductor
+.conductor.local.json
+.conductor.json
+
+# MCP config (user-specific)
+.mcp.json
+
+# Playwright MCP session data
+.playwright-mcp/

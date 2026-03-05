@@ -25,10 +25,11 @@ Example:
 - Local dev environment running (`aws-vault exec tatari-ro -- make dev`)
 - philo-fe running at `http://local.tatari.tools:3000`
 - Playwright MCP browser available (Playwright tools: `mcp__playwright__*`)
+- Run `/tatari-qa:bootstrap` first to set up the full dogfooding environment
 - For Tier 2/3 scenarios: local data setup scripts must have been run:
   ```bash
-  docker compose exec -it devserver poetry run python script/programmatic_segment_ingester.py ingest-beeswax-segments
-  docker compose exec -it devserver poetry run python script/ops/setup_local_dev_for_beeswax_sandbox.py
+  docker compose exec devserver poetry run python script/programmatic_segment_ingester.py ingest-beeswax-segments
+  docker compose exec devserver poetry run python script/ops/setup_local_dev_for_beeswax_sandbox.py
   ```
 
 ## Process
@@ -60,11 +61,35 @@ Example:
 
 ### Step 1: Navigate to Campaign Creation Form
 
-Navigate the browser to the campaign creation page:
+**CRITICAL: Do NOT navigate directly to `/campaigns/new`.** The Tatari2 form uses a Zustand app store where `isRoasEnabledForCompany` defaults to `false` and is only populated by the `GetTatari2Campaigns` query that runs on the campaigns list page. Navigating directly to `/campaigns/new` (a full page load) resets the store, permanently disabling ROAS for that session regardless of account configuration. Always use the two-step SPA navigation below.
+
+**Step 1a:** Navigate to the campaigns list:
 
 ```
 mcp__playwright__browser_navigate
-  url: http://local.tatari.tools:3000/c/tatari_client_mode_2_debug/campaigns/new
+  url: http://local.tatari.tools:3000/c/tatari_client_mode_2_debug/campaigns
+```
+
+Wait for `networkidle` and for the page to fully load (the `GetTatari2Campaigns` query must complete to populate the app store):
+
+```javascript
+mcp__playwright__browser_run_code
+  code: async (page) => {
+    await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
+    await page.waitForTimeout(1000);
+    return page.url();
+  }
+```
+
+**Step 1b:** Click the "Create campaign" link — this is a React Router SPA navigation that preserves the Zustand store state:
+
+```javascript
+mcp__playwright__browser_run_code
+  code: async (page) => {
+    await page.getByRole('link', { name: 'Create campaign' }).click();
+    await page.getByText('Campaign Name').first().waitFor({ state: 'visible', timeout: 10000 });
+    return page.url();
+  }
 ```
 
 **If navigation fails with `browserType.launchPersistentContext: Failed to launch`** (error log shows "Opening in existing browser session"), an existing Playwright Chromium instance is blocking. Kill it and retry:
@@ -73,13 +98,13 @@ mcp__playwright__browser_navigate
 pkill -f "Google Chrome for Testing.*mcp-chromium"
 ```
 
-Then retry the `browser_navigate` call.
+Then retry from Step 1a.
 
-Wait for the page to load using `browser_wait_for` with text "Campaign Name". If the wait times out and the URL has redirected to `tatari.okta.com`, the user needs to authenticate:
+If the URL redirects to `tatari.okta.com` at any point, the user needs to authenticate:
 
 1. Inform the user: "The browser redirected to Okta login. Please approve the MFA push notification on your phone."
 2. Wait for the user to confirm login
-3. Re-navigate to the campaign creation URL
+3. Re-navigate starting from Step 1a
 
 Once the form loads, take an accessibility snapshot to verify the "Campaign Name" textbox is visible.
 
@@ -126,8 +151,8 @@ For conversion goals, the KPI options appear as radio buttons:
 | YAML `goal.kpi` | Form Label |
 |-----------------|------------|
 | `cpa` | "Conversions (CPA)" |
-| `cpv` | "Site visitors (CPV)" |
-| `roas` | "Return on ad spend (ROAS)" - may be feature-flag gated |
+| `cpv` | "Visits (CPV)" |
+| `roas` | "Return on Ad Spend" - requires purchase events with revenue tracking configured in Settings > Events |
 
 Click the **container** for the desired KPI radio button (same container-click pattern as Step 3).
 
@@ -188,6 +213,8 @@ If the exact label isn't found in the snapshot, look for a spinbutton or textbox
 
 ### Step 7: Set Budget Amount
 
+**IMPORTANT: For `lifetime` budgets, set the budget TYPE first (Step 8) before entering the amount.** Entering a large amount (e.g. $15,000) while "Daily" is still selected triggers a validation warning ("Please enter a daily budget of $5,000 or less") that can persist in React state and silently block form submission even after switching to Lifetime.
+
 ```
 mcp__playwright__browser_fill_form
   textbox "Budget": "{budget.amount}"
@@ -198,6 +225,8 @@ mcp__playwright__browser_fill_form
 ### Step 8: Set Budget Type
 
 **Default is "Daily".** Only change if `budget.type` is `lifetime`.
+
+**For lifetime budgets: switch to "Lifetime" BEFORE entering the budget amount** (see Step 7 note above).
 
 | YAML `budget.type` | Form Label |
 |--------------------|------------|
@@ -543,6 +572,8 @@ These patterns are **essential** for reliable Playwright MCP automation of this 
 | Budget | Fill amount, auto-splits 80/20 on blur | No need to set channel split manually |
 | Interests tree | **DEFAULT TO EMPTY - never expand** | Context overflow risk — hundreds of nested items |
 | Browser launch | Kill existing Chromium before navigating if launch fails | Previous MCP session can block the user data directory |
+| ROAS KPI | Always use SPA navigation (campaigns list → click "Create campaign") | `isRoasEnabledForCompany` defaults to `false` in Zustand store; only set by `GetTatari2Campaigns` query on the campaigns list. Hard `page.goto('/campaigns/new')` resets the store. |
+| Lifetime budget amount | Set budget TYPE to "Lifetime" BEFORE entering the dollar amount | Entering large amounts while Daily is selected triggers a sticky validation warning that silently blocks submission |
 
 ## Context Window Management Rules
 
@@ -570,3 +601,5 @@ If a step fails:
 10. **Creatives drawer empty**: No "Ready to air" creatives exist. This is a data issue, not an automation issue.
 11. **Validation errors on save**: Read the error messages carefully. Usually means a required field was missed. Take a snapshot of the full form and identify the missing field.
 12. **Context overflow**: If any snapshot response is truncated, save to file and grep for specific elements.
+13. **ROAS radio is disabled despite valid account**: The Zustand app store wasn't populated. You navigated directly to `/campaigns/new` instead of going through the campaigns list first. Start over from Step 1 using the two-step SPA navigation pattern. Root cause: `isRoasEnabledForCompany` is set by `GetTatari2Campaigns` (runs on `/campaigns`) and only persists if you navigate via React Router link — a hard `page.goto('/campaigns/new')` resets it to `false`.
+14. **Lifetime budget save silently fails / Save changes button does nothing**: A daily budget validation warning is stuck in React state. This happens when you enter a large budget amount before switching to Lifetime type. Reload the form and set "Lifetime" budget type first, then enter the amount.

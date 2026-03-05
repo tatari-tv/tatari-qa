@@ -24,6 +24,9 @@ tatari-qa/
 
 Commands live in `commands/*.md` as markdown files with YAML frontmatter. Each file becomes a slash command (`/tatari-qa:<command-name>`).
 
+- **`bootstrap`** — Bootstraps the full QA dogfooding environment (repo checkout, prerequisite validation, setup scripts)
+- **`campaign-qa`** — Executes YAML-driven campaign creation QA scenarios via Playwright
+
 ### Scenario Files
 
 YAML scenario files live in the **philo** repo at `script/qa/campaign_creation/scenarios/`. This plugin reads them at runtime — it does not bundle its own scenarios.

@@ -505,7 +505,42 @@ If still on the form (not redirected), take a snapshot and check for validation 
 - Look for `img "Attention"` elements
 - Look for error text like "Please choose a conversion event", "Budget is required", etc.
 
-### Step 20: Report Results
+### Step 20: Execute Queued Orders
+
+**Skip this step if `submit.action` is `draft`.** Draft saves do not submit the campaign and do not create a `ProgrammaticOrderRequest`. Only `submit.action: full` (the "Finish" button) queues an order.
+
+**Discover the philo repo path** (try primary then fallback):
+
+```bash
+test -d ~/dev/philo/.git && echo "$HOME/dev/philo" || echo "$(cd ../philo 2>/dev/null && pwd)"
+```
+
+**Detect the docker compose filename** (philo uses `docker-compose.yml`, not `.yaml`):
+
+```bash
+ls {philo_path}/docker-compose.yml 2>/dev/null && echo "docker-compose.yml" || echo "docker-compose.yaml"
+```
+
+**Run the execute script:**
+
+```bash
+docker compose -f {philo_path}/{compose_file} exec devserver \
+  poetry run python script/qa/execute_queued_orders.py --latest
+```
+
+**Expected success output:**
+```
+INFO     Found 1 QUEUED request(s):
+INFO       ID=42  order=17  campaign="QA Auto - ..."  created=...  attempts=0
+INFO     Executing 1 request(s)...
+INFO     Done. processed=1 failed=0
+```
+
+**Success criteria:** exit code 0 and `failed=0` in output.
+
+If the script reports `No QUEUED requests found`, the campaign was likely saved as draft rather than submitted with "Finish". Verify `submit.action: full` in the scenario YAML.
+
+### Step 21: Report Results
 
 Output a structured result summary:
 
@@ -525,6 +560,10 @@ Submit Action: {submit.action}
 Assertions:
   - Redirect to campaigns list: PASS / FAIL
   - No validation errors: PASS / FAIL
+
+Order Execution: PASS / FAIL / SKIPPED (draft)
+  ProgrammaticOrderRequest ID: {id}
+  processed=1 failed=0
 
 {If FAIL: include error details, screenshot path, or snapshot excerpt}
 ```
@@ -570,3 +609,6 @@ If a step fails:
 10. **Creatives drawer empty**: No "Ready to air" creatives exist. This is a data issue, not an automation issue.
 11. **Validation errors on save**: Read the error messages carefully. Usually means a required field was missed. Take a snapshot of the full form and identify the missing field.
 12. **Context overflow**: If any snapshot response is truncated, save to file and grep for specific elements.
+13. **ROAS radio is disabled despite valid account**: The Zustand app store wasn't populated. You navigated directly to `/campaigns/new` instead of going through the campaigns list first. Start over from Step 1 using the two-step SPA navigation pattern.
+14. **Lifetime budget save silently fails / Save changes button does nothing**: A daily budget validation warning is stuck in React state. Reload the form and set "Lifetime" budget type first, then enter the amount.
+15. **`execute_queued_orders.py` fails or reports `failed=1`**: Check that the devserver container is running and Beeswax sandbox credentials are configured. Review the error output — common causes: credentials wrong in `local_creds.py`, Beeswax sandbox unreachable, or the order had a data validation error. Re-run `/tatari-qa:bootstrap` to verify prerequisites.
